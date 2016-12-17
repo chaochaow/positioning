@@ -20,11 +20,11 @@
 #ifndef UBLOXPARSER_H
 #define UBLOXPARSER_H
 
-#include <memory>
+#include <string.h>
 #include <vector>
-#include "gnss.h"
+#include "../../api/gnss.h"
 
-#define UBLOX_MSG_LENGTH (512)
+#define UBLOX_MSG_LENGTH (1024)
 
 typedef enum 
 {
@@ -94,7 +94,7 @@ typedef struct
         classId = 0;
         msgId = 0;
         msgLen = 0;
-        std::memset(msgBody, 0, sizeof(uint8_t) * UBLOX_MSG_LENGTH);
+        memset(msgBody, 0, sizeof(uint8_t) * UBLOX_MSG_LENGTH);
         checkSumA = 0;
         checkSumB = 0;
         msgDataIndex = 0;
@@ -161,12 +161,15 @@ typedef enum
     UBLOX_PVT_DATA_READY            = 0x00000001,
     UBLOX_SAT_DATA_READY            = 0x00000002,
     UBLOX_DATA_READY_FOR_OUTPUT     = (UBLOX_PVT_DATA_READY | UBLOX_SAT_DATA_READY)
-};
+}UBloxDataAvail;
 
 class UBloxParser
 {
 public:
     bool ProcessDataInput(uint8_t ch);
+    bool GetGnssPvtData( TGNSSPosition & gnss);
+    bool GetGnssSatData(TGNSSSatelliteDetail * satelliteDetails, uint16_t maxCount, uint16_t * numSat);
+    void Reset();
     UBloxParser();
     ~UBloxParser();
 private:
@@ -184,7 +187,8 @@ private:
     bool FrameMsg(uint8_t ch);
     bool DecodeNavSat(uint8_t * buf);
     bool DecodeNavPVT(uint8_t * buf);
-    void Reset();
+
+
 };
 
 #endif
