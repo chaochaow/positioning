@@ -30,6 +30,7 @@ UBloxParser::~UBloxParser()
 
 bool UBloxParser::ProcessDataInput(unsigned char ch)
 {
+    bool bNewData = false;
     if(true == FrameMsg(ch))
     {
         if(UBLOX_CLASS_NAV == msg.classId)
@@ -38,10 +39,12 @@ bool UBloxParser::ProcessDataInput(unsigned char ch)
             {
             case UBLOX_NAV_PVT:
                 DecodeNavPVT(msg.msgBody);
+                bNewData = true;
                 break;
 
             case UBLOX_NAV_SAT:
                 DecodeNavSat(msg.msgBody);
+                bNewData = true;
                 break;
 
             default:
@@ -49,12 +52,12 @@ bool UBloxParser::ProcessDataInput(unsigned char ch)
             }
         }
 
-        if(UBLOX_DATA_READY_FOR_OUTPUT == dataAvailMask)
+        if(bNewData && UBLOX_DATA_READY_FOR_OUTPUT == dataAvailMask)
         {
-            //send the data to the application
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 bool UBloxParser::FrameMsg(unsigned char ch)
@@ -64,23 +67,12 @@ bool UBloxParser::FrameMsg(unsigned char ch)
     case UBLOX_MSG_UNKWN:
         if(0xb5 == ch)
         {
-            msgStatus = UBLOX_MSG_SYNC1;
-        }
-        break;
-
-    case UBLOX_MSG_SYNC1:
-        if( 0x62 == ch)
-        {
             msgStatus = UBLOX_MSG_SYNC2;
-        }
-        else
-        {
-            msgStatus = UBLOX_MSG_UNKWN;
         }
         break;
 
     case UBLOX_MSG_SYNC2:
-        if( UBLOX_MSG_SYNC2 == ch)
+        if( 0x62 == ch)
         {
             msgStatus = UBLOX_MSG_CLASS;
         }
@@ -135,7 +127,11 @@ bool UBloxParser::FrameMsg(unsigned char ch)
             msgStatus = UBLOX_MSG_UNKWN;
             return true;
         }
-
+        else
+        {
+            msgStatus = UBLOX_MSG_UNKWN;
+        }
+        
     default:
         break;
     }
@@ -164,6 +160,7 @@ bool UBloxParser::DecodeNavSat(uint8_t * buf)
     gnssSatInfo.clear();
 
 
+
     for(uint8_t i = 0; i < gnssData.visibleSatellites; i++)
     {
         //8 byte of the common sat info
@@ -173,11 +170,17 @@ bool UBloxParser::DecodeNavSat(uint8_t * buf)
 
         memset(&sat, 0, sizeof(sat));
 
-        sat.elevation = pBlock->elev;
-        sat.validityBits |= GNSS_SATELLITE_ELEVATION_VALID;
-
-        sat.azimuth = pBlock->azim;
-        sat.validityBits |= GNSS_SATELLITE_AZIMUTH_VALID;
+        if(pBlock->elev >= 0 && pBlock->elev < 91)
+        {
+            sat.elevation = pBlock->elev;
+            sat.validityBits |= GNSS_SATELLITE_ELEVATION_VALID;
+        }
+        
+        if(pBlock->azim >=0 && pBlock->azim < 361)
+        {
+            sat.azimuth = pBlock->azim;
+            sat.validityBits |= GNSS_SATELLITE_AZIMUTH_VALID;
+        }
 
         sat.CNo = pBlock->cn0;
         sat.validityBits |= GNSS_SATELLITE_CNO_VALID;
@@ -194,8 +197,8 @@ bool UBloxParser::DecodeNavSat(uint8_t * buf)
         sat.satelliteId = pBlock->svId;
         sat.validityBits |= GNSS_SATELLITE_ID_VALID;
 
+        //when sat is not used in nav, residual is zero
         sat.posResidual = static_cast<int16_t>(pBlock->prRes * 0.1);
-        sat.validityBits |= GNSS_SATELLITE_RESIDUAL_VALID;
 
         sat.validityBits |= GNSS_SATELLITE_SYSTEM_VALID;
         switch (pBlock->gnssId)
@@ -207,25 +210,31 @@ bool UBloxParser::DecodeNavSat(uint8_t * buf)
         case UBLOX_GNSS_SBAS:
             sat.system = GNSS_SYSTEM_SBAS_WAAS;
             gnssConstMask |= GNSS_SYSTEM_SBAS_WAAS;
+            sat.satelliteId -= 87;
             break;
         case UBLOX_GNSS_GALILEO:
             sat.system = GNSS_SYSTEM_GALILEO;
             gnssConstMask |= GNSS_SYSTEM_GALILEO;
+            sat.satelliteId -= 210;
             break;
         case UBLOX_GNSS_BEIDOU:
             sat.system = GNSS_SYSTEM_BEIDOU;
             gnssConstMask |= GNSS_SYSTEM_BEIDOU;
+            //sat id needs to be further defined
             break;
         case UBLOX_GNSS_IMES:
             sat.validityBits &= ~GNSS_SATELLITE_SYSTEM_VALID;
+            //sat id needs to be further defined
             break;
         case UBLOX_GNSS_QZSS:
             sat.system = GNSS_SYSTEM_SBAS_QZSS_SAIF;
             gnssConstMask |= GNSS_SYSTEM_SBAS_QZSS_SAIF;
+            //sat id needs to be further defined
             break;
         case UBLOX_GNSS_GLONASS:
             sat.system = GNSS_SYSTEM_GLONASS;
             gnssConstMask |= GNSS_SYSTEM_GLONASS;
+            sat.satelliteId += 64;
             break;
         default:
             sat.validityBits &= ~GNSS_SATELLITE_SYSTEM_VALID;
@@ -235,6 +244,7 @@ bool UBloxParser::DecodeNavSat(uint8_t * buf)
         if(pBlock->flags & UBLOX_SAT_SATUSED)
         {
             sat.statusBits |= GNSS_SATELLITE_USED;
+            sat.validityBits |= GNSS_SATELLITE_RESIDUAL_VALID;
         }
         sat.validityBits |= GNSS_SATELLITE_USED_VALID;
 
@@ -247,7 +257,7 @@ bool UBloxParser::DecodeNavSat(uint8_t * buf)
         gnssSatInfo.push_back(sat);
     }
 
-    gnssData.activatedSystems = gnssConstMask;
+    gnssData.usedSystems = gnssConstMask;
     gnssData.validityBits |= GNSS_POSITION_USYS_VALID;
 
     gnssData.trackedSatellites = numTracked;
@@ -263,11 +273,11 @@ bool UBloxParser::DecodeNavPVT(uint8_t * buf)
     if(pPVT->iTOW != lastSatDataTow)
     {
         dataAvailMask = 0;
+        memset(&gnssData, 0, sizeof(gnssData));
     }
 
     lastPvtDataTow = pPVT->iTOW;
     dataAvailMask |= UBLOX_PVT_DATA_READY;
-
     //this needs to be updated, check the definition of timestamp
     gnssData.timestamp = pPVT->iTOW;
 
@@ -337,6 +347,12 @@ bool UBloxParser::DecodeNavPVT(uint8_t * buf)
 
     }
 
+    if(gnssData.fixStatus > GNSS_FIX_STATUS_NO)
+    {
+        gnssData.fixTypeBits |= GNSS_FIX_TYPE_SINGLE_FREQUENCY;
+        gnssData.fixTypeBits |= GNSS_FIX_TYPE_ESTIMATED;
+        gnssData.validityBits |= GNSS_POSITION_TYPE_VALID;
+    }
 
     return true;
 
@@ -346,7 +362,7 @@ void UBloxParser::CalculateCheckSum(uint8_t * dataBuf, uint16_t msgLen, uint8_t 
 {
     checkSumA = checkSumB = 0;
 
-    for(uint8_t i = 0; i < msgLen; i++)
+    for(uint16_t i = 0; i < msgLen; i++)
     {
         checkSumA += dataBuf[i];
         checkSumB += checkSumA;
@@ -359,4 +375,34 @@ void UBloxParser::Reset()
     dataAvailMask = 0;
     msg.Reset();
     lastSatDataTow = lastPvtDataTow = -1;
+}
+
+bool UBloxParser::GetGnssSatData(TGNSSSatelliteDetail * satelliteDetails, uint16_t maxCount, uint16_t * numSat)
+{
+    if(UBLOX_DATA_READY_FOR_OUTPUT != dataAvailMask)
+    {
+        return false;
+    }
+
+    *numSat = gnssSatInfo.size();
+    if(*numSat > maxCount)
+    {
+        *numSat = maxCount;
+    }
+    for(uint8_t count = 0; count < *numSat; count++)
+    {
+        satelliteDetails[count] = gnssSatInfo[count];
+    }
+    return true;
+}
+
+bool UBloxParser::GetGnssPvtData( TGNSSPosition & gnss)
+{
+    if(UBLOX_DATA_READY_FOR_OUTPUT != dataAvailMask)
+    {
+        return false;
+    }
+
+    gnss = gnssData;
+    return true;
 }

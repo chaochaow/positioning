@@ -22,9 +22,9 @@
 
 #include <memory>
 #include <vector>
-#include "gnss.h"
+#include "../../api/gnss.h"
 
-#define UBLOX_MSG_LENGTH (512)
+#define UBLOX_MSG_LENGTH (1024)
 
 typedef enum 
 {
@@ -167,6 +167,9 @@ class UBloxParser
 {
 public:
     bool ProcessDataInput(uint8_t ch);
+    bool GetGnssPvtData( TGNSSPosition & gnss);
+    bool GetGnssSatData(TGNSSSatelliteDetail * satelliteDetails, uint16_t maxCount, uint16_t * numSat);
+    void Reset();
     UBloxParser();
     ~UBloxParser();
 private:
@@ -184,7 +187,8 @@ private:
     bool FrameMsg(uint8_t ch);
     bool DecodeNavSat(uint8_t * buf);
     bool DecodeNavPVT(uint8_t * buf);
-    void Reset();
+
+
 };
 
 #endif
