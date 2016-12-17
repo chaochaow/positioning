@@ -22,13 +22,13 @@
 project(uBloxParser)
 cmake_minimum_required(VERSION 2.6.0)
 
-message(STATUS "UBLOXPARSER")
+message(STATUS "uBloxParser")
 
 set(gnss-service_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/../../gnss-service/api")
 
 include_directories(${gnss-service_INCLUDE_DIRS})
 
-add_executable(UBLOXPARSER
+add_executable(uBloxParser
     main.cpp
     uBloxParser.cpp
     uBloxParser.h

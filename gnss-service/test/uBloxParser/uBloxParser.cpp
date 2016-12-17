@@ -15,8 +15,8 @@
 *
 * @licence end@
 **************************************************************************/
-
-#include "UBloxParser.h"
+#include <math.h>
+#include "uBloxParser.h"
 
 UBloxParser::UBloxParser()
 {

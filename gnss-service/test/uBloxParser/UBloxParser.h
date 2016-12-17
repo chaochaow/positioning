@@ -20,7 +20,7 @@
 #ifndef UBLOXPARSER_H
 #define UBLOXPARSER_H
 
-#include <memory>
+#include <string.h>
 #include <vector>
 #include "../../api/gnss.h"
 
@@ -94,7 +94,7 @@ typedef struct
         classId = 0;
         msgId = 0;
         msgLen = 0;
-        std::memset(msgBody, 0, sizeof(uint8_t) * UBLOX_MSG_LENGTH);
+        memset(msgBody, 0, sizeof(uint8_t) * UBLOX_MSG_LENGTH);
         checkSumA = 0;
         checkSumB = 0;
         msgDataIndex = 0;
@@ -161,7 +161,7 @@ typedef enum
     UBLOX_PVT_DATA_READY            = 0x00000001,
     UBLOX_SAT_DATA_READY            = 0x00000002,
     UBLOX_DATA_READY_FOR_OUTPUT     = (UBLOX_PVT_DATA_READY | UBLOX_SAT_DATA_READY)
-};
+}UBloxDataAvail;
 
 class UBloxParser
 {

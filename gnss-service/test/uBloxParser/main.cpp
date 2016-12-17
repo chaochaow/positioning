@@ -15,8 +15,8 @@
 *
 * @licence end@
 **************************************************************************/
-
-#include "UBloxParser.h"
+#include <stdio.h>
+#include "uBloxParser.h"
 
 UBloxParser parser;
 void PrintGnssSol(TGNSSPosition position);
@@ -24,13 +24,13 @@ void PrintGnssInfo(TGNSSSatelliteDetail  * satInfo, uint16_t satNum);
 
 
 
-void main(int argc, char * argv[])
+int main(int argc, char * argv[])
 {
 
     if(argc < 2)
     {
         printf("Please provide file input\n");
-        return;
+        return 0;
     }
 
     FILE * f_in = fopen(argv[1], "rb");
@@ -58,7 +58,7 @@ void main(int argc, char * argv[])
 
         }
     }
-
+    return 1;
 }
 
 bool gnssGetPosition(TGNSSPosition* position)
