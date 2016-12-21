@@ -7,7 +7,7 @@
 * \author Chao Wang <chao.wang@garmin.com>
 *
 * \copyright Copyright (C) 2016, Garmin International
-* 
+*
 * \license
 * This Source Code Form is subject to the terms of the
 * Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with
@@ -20,13 +20,13 @@
 #ifndef UBLOXPARSER_H
 #define UBLOXPARSER_H
 
+#include <stdint.h>
 #include <string.h>
 #include <vector>
-#include "../../api/gnss.h"
 
 #define UBLOX_MSG_LENGTH (1024)
 
-typedef enum 
+typedef enum
 {
     UBLOX_CLASS_NAV             = 0x00000001,
     UBLOX_CLASS_RXM             = 0x00000002,
@@ -36,7 +36,7 @@ typedef enum
     UBLOX_CLASS_MGA             = 0x00000013
 }UBloxClassID;
 
-typedef enum 
+typedef enum
 {
     UBLOX_NAV_PVT               = 0x00000007,
     UBLOX_NAV_SAT               = 0x00000035
@@ -156,38 +156,136 @@ typedef struct
     uint32_t flags;
 }UBloxSatBlock;
 
+typedef struct
+{
+    double rcvTow;
+    uint16_t week;
+    int8_t leapS;
+    uint8_t numMeas;
+    uint8_t recStat;
+    uint8_t reserved1[3];
+}UBloxMeasHeader;
+
+typedef struct
+{
+    double prMeas;
+    double cpMeas;
+    float doMeas;
+    uint8_t gnssId;
+    uint8_t svId;
+    uint8_t reserved2;
+    uint8_t freqId;
+    uint16_t locktime;
+    uint8_t cn0;
+    uint8_t prStdDev;
+    uint8_t cpStdDev;
+    uint8_t doStdDev;
+    uint8_t trkStat;
+    uint8_t reserved3;
+}UBloxMeasBlock;
+
+typedef struct
+{
+    uint8_t type;
+    uint8_t version;
+    uint8_t svId;
+    uint8_t reserved1;
+    uint8_t fitInterval;
+    uint8_t uraIndex;
+    uint8_t svHealth;
+    int8_t tgd;
+    uint16_t iodc;
+    uint16_t toc;
+    uint8_t reserved2;
+    int8_t af2;
+    int16_t af1;
+    int32_t af0;
+    int16_t crs;
+    int16_t deltaN;
+    int32_t m0;
+    int16_t cuc;
+    int16_t cus;
+    uint32_t e;
+    uint32_t sqrtA;
+    uint16_t toe;
+    int16_t cic;
+    int32_t omega0;
+    int16_t cis;
+    int16_t crc;
+    int32_t i0;
+    int32_t omega;
+    int32_t omegaDot;
+    int16_t idot;
+    uint8_t reserved3[2];
+}UBloxGpsEphStruct;
+
+typedef struct
+{
+    uint8_t type;
+    uint8_t version;
+    uint8_t reserved1[2];
+    uint32_t utcA0;
+    uint32_t utcA1;
+    int8_t utcDtLS;
+    uint8_t utcTot;
+    uint8_t utcWNt;
+    uint8_t utcWNlsf;
+    uint8_t utcDn;
+    int8_t utcDlLSF;
+    uint8_t reserved2[2];
+}UBloxGpsUtcStruct;
+
+typedef struct
+{
+    uint8_t type;
+    uint8_t version;
+    uint8_t reserved1[2];
+    int8_t ionoAlpha0;
+    int8_t ionoAlpha1;
+    int8_t ionoAlpha2;
+    int8_t ionoAlpha3;
+    int8_t ionoBeta0;
+    int8_t ionoBeta1;
+    int8_t ionoBeta2;
+    int8_t ionoBeta3;
+    uint8_t reserved2[4];
+}UBloxGpsIonoStruct;
+
 typedef enum
 {
-    UBLOX_PVT_DATA_READY            = 0x00000001,
-    UBLOX_SAT_DATA_READY            = 0x00000002,
+    UBLOX_DATA_UNKNOWN              = 0x00000001,
+    UBLOX_PVT_DATA_READY            = 0x00000002,
+    UBLOX_SAT_DATA_READY            = 0x00000004,
+    UBLOX_MEAS_DATA_READY           = 0x00000008,
+    UBLOX_EPH_DATA_READY            = 0x00000010,
+    UBLOX_IONO_DATA_READY           = 0x00000020,
+    UBLOX_UTC_DATA_READY            = 0x00000040,
     UBLOX_DATA_READY_FOR_OUTPUT     = (UBLOX_PVT_DATA_READY | UBLOX_SAT_DATA_READY)
+          
 }UBloxDataAvail;
 
 class UBloxParser
 {
 public:
     bool ProcessDataInput(uint8_t ch);
-    bool GetGnssPvtData( TGNSSPosition & gnss);
-    bool GetGnssSatData(TGNSSSatelliteDetail * satelliteDetails, uint16_t maxCount, uint16_t * numSat);
-    void Reset();
+    inline uint32_t GetUBloxDataType() { return dataAvailType; };
+    bool GetGnssPvtData(UBloxPVTStruct ** gnss);
+    bool GetGnssSatdata(UBloxSatStruct ** satHeader, UBloxSatBlock ** satBlock);
+    bool GetGnssMeasData(UBloxMeasHeader ** measHeader, UBloxMeasBlock ** measBlock);
+    bool GetGpsEphData(UBloxGpsEphStruct ** eph);
+    bool GetGpsIonoData(UBloxGpsIonoStruct ** iono);
+    bool GetGpsUtcData(UBloxGpsUtcStruct ** utc);
     UBloxParser();
     ~UBloxParser();
 private:
 
     UBloxMsgStatus msgStatus;
     UBloxMsg msg;
-    uint32_t dataAvailMask;
-    int32_t lastPvtDataTow; //in milli-seconds
-    int32_t lastSatDataTow; //in milli-seconds
-
-    TGNSSPosition gnssData;
-    std::vector<TGNSSSatelliteDetail> gnssSatInfo;
+    uint32_t dataAvailType;
 
     void CalculateCheckSum(uint8_t * dataBuf, uint16_t msgLen, uint8_t & checkSumA, uint8_t & checkSumB);
     bool FrameMsg(uint8_t ch);
-    bool DecodeNavSat(uint8_t * buf);
-    bool DecodeNavPVT(uint8_t * buf);
-
+    void Reset();
 
 };
 
