@@ -29,8 +29,11 @@ option(WITH_GPSD
     "Use GPSD as source of GPS data" OFF)
 
 option(WITH_NMEA
-    "Use NMEA as source of GPS data" OFF)    
+    "Use NMEA as source of GPS data" OFF)
     
+option(WITH_UBLOX
+    "Use UBLOX Binary as source of GPS data" OFF)
+
 option(WITH_REPLAYER
     "Use REPLAYER as source of GPS data" ON)
 

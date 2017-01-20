@@ -74,6 +74,17 @@ elseif(WITH_NMEA)
     #for glibc <2.17, clock_gettime is in librt: http://linux.die.net/man/2/clock_gettime
     #TODO: is there a nice way to detect glibc version in CMake?
     set(LIBRARIES ${LIBRARIES} rt)
+elseif(WITH_UBLOX)
+    #generate library using uBlox binary parser as input
+    add_definitions(-DGNSS_DEVICE=${GNSS_DEVICE})
+    add_definitions(-DGNSS_BAUDRATE=${GNSS_BAUDRATE})
+    set(LIB_SRC_USE_UBLOX ${CMAKE_CURRENT_SOURCE_DIR}/gnss-use-ublox.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/uBloxParser.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/gnss-impl.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/gnss-meta-data.c)
+    add_library(gnss-service-use-ublox SHARED ${LIB_SRC_USE_UBLOX})
+    target_link_libraries(gnss-service-use-ublox pthread ${LIBRARIES})
+    install(TARGETS gnss-service-use-ublox DESTINATION lib)
 elseif(WITH_REPLAYER)
     #generate library using replayer as input
     set(LIB_SRC_USE_REPLAYER ${CMAKE_CURRENT_SOURCE_DIR}/gnss-use-replayer.c 

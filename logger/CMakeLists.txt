@@ -30,6 +30,9 @@ option(WITH_GPSD
 
 option(WITH_NMEA
     "Use NMEA as source of GPS data" OFF)
+
+option(WITH_UBLOX
+    "Use UBlox binary as source of GPS data" OFF)
     
 option(WITH_SENSORS
     "Use real sensors connected to the target device" OFF)

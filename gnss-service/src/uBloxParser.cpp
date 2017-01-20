@@ -47,7 +47,20 @@ bool UBloxParser::ProcessDataInput(unsigned char ch)
             }
 
         }
-
+        else if(UBLOX_CLASS_AID == msg.classId)
+        {
+            if(UBLOX_AID_EPH == msg.msgId)
+            {
+                //decode ephemeris
+            }
+        }
+        else if(UBLOX_CLASS_RXM == msg.classId)
+        {
+            if(UBLOX_RXM_RAWX == msg.msgId)
+            {
+                //decode raw measurements
+            }
+        }
     }
     return false;
 }

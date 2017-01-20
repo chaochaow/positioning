@@ -33,7 +33,7 @@ typedef enum
     UBLOX_CLASS_INF             = 0x00000004,
     UBLOX_CLASS_ACK             = 0x00000005,
     UBLOX_CLASS_CFG             = 0x00000006,
-    UBLOX_CLASS_MGA             = 0x00000013
+    UBLOX_CLASS_AID             = 0x0000000B
 }UBloxClassID;
 
 typedef enum
@@ -41,6 +41,16 @@ typedef enum
     UBLOX_NAV_PVT               = 0x00000007,
     UBLOX_NAV_SAT               = 0x00000035
 }UBloxNavID;
+
+typedef enum
+{
+    UBLOX_AID_EPH		        = 0x00000031
+}UBloxAidID;
+
+typedef enum
+{
+    UBLOX_RXM_RAWX              = 0x00000015
+}UBloxMeasID;
 
 typedef enum
 {
@@ -261,7 +271,7 @@ typedef enum
     UBLOX_IONO_DATA_READY           = 0x00000020,
     UBLOX_UTC_DATA_READY            = 0x00000040,
     UBLOX_DATA_READY_FOR_OUTPUT     = (UBLOX_PVT_DATA_READY | UBLOX_SAT_DATA_READY)
-          
+
 }UBloxDataAvail;
 
 class UBloxParser
